@@ -12,3 +12,7 @@ v0.1:
 - set humidity trigger with gisteresis via MQTT for "auto mode";
 - send value of temperature & humidity via MQTT;
 - save last hum.value control & mode to EEPROM (flash)
+
+v0.2:
+- fix save EEPROM for low value humidity
+- MQTT update sensor value by constant interval

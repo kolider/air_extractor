@@ -9,7 +9,7 @@
 //Si7020 Temp & Hum sensor initial
 float temperature;
 float humidity;
-bool enableHeater = false;
+bool enableHeater = false, newUpdate = false;;
 uint8_t loopCnt = 0;
 unsigned long lastRefresh = 0;
 uint8_t humi_fan_on = 65;
@@ -59,6 +59,15 @@ Adafruit_MQTT_Publish high_thr_hum_pub = Adafruit_MQTT_Publish(&mqtt, AIO_USERNA
 #define FAN_ON 3
 uint8_t Fan_mode = FAN_AUTO;
 
+bool isNewUpdates(){
+  if (newUpdate){
+    newUpdate = !newUpdate;
+    return true;
+  }else
+    return false;
+    
+}
+
 void setupOTA() {
   // set WiFi mode to station mode
   WiFi.mode(WIFI_AP_STA);
@@ -107,7 +116,8 @@ void MQTT_connect() {
        delay(5000);  // wait 5 seconds
        retries--;
        if (retries == 0) {
-         ESP.restart();
+//         // basically die and wait for WDT to reset me
+//         ESP.restart();
           return;
        }
   }
@@ -134,12 +144,16 @@ void setupFAN()
 void updateSensor() {
   humidity = sensor.readHumidity();
   temperature = sensor.readTemperature();
+  newUpdate = true;
 }
 
 void sensorCorrMetering(){
   // Toggle heater enabled state every 30 seconds
   // An ~1.8 degC temperature increase can be noted when heater is enabled
-  if (++loopCnt == 6) {
+//  if (++loopCnt == 6) {
+  unsigned long ms = millis();
+  if (ms < lastRefresh || ms - lastRefresh > PUBLISH_INTERVAL/2){
+    lastRefresh = ms;
     enableHeater = !enableHeater;
     if (enableHeater)
       updateSensor(); //Real temp & humidity metering before heater
@@ -149,18 +163,18 @@ void sensorCorrMetering(){
       Serial.println("ENABLED");
     else
       Serial.println("DISABLED");
-    loopCnt = 0;
+//    loopCnt = 0;
   }
 }
 
-bool needRefresh(){
-  unsigned long ms = millis();
-  if ( ms < lastRefresh || ms - lastRefresh > 1000){
-    lastRefresh = ms;
-    return true;
-  }
-  return false;
-}
+//bool needRefresh(){
+//  unsigned long ms = millis();
+//  if ( ms < lastRefresh || ms - lastRefresh > 1000){
+//    lastRefresh = ms;
+//    return true;
+//  }
+//  return false;
+//}
 
 void autoModeFAN(){
   if (humidity >= humi_fan_on){
@@ -197,7 +211,7 @@ void rememberFanMode(){
 
 void saveHumThreshold(){
   EEPROM.write(1, humi_fan_on); //address 1
-  EEPROM.write(1, humi_fan_off); //address 2
+  EEPROM.write(2, humi_fan_off); //address 2
   EEPROM.commit();
 }
 
@@ -251,7 +265,7 @@ void MQTT_Handler(){
   // try to spend your time here
 
   Adafruit_MQTT_Subscribe *subscription;
-  while ((subscription = mqtt.readSubscription(5000))) { // need to issue. Stoping on this point
+  while ((subscription = mqtt.readSubscription(1000))) { // need to issue. Waiting on this point
     if (subscription == &fan_sub_mqtt) {
       applyFanMode(atoi((char *)fan_sub_mqtt.lastread));
     }
@@ -282,8 +296,8 @@ void setup() {
 }
 
 void loop() {  
-  if(needRefresh()){
-    sensorCorrMetering();
+  sensorCorrMetering();
+  if(isNewUpdates()){
     if (! temp_pub_mqtt.publish(temperature)) {
       Serial.println(F("Failed"));
     }
@@ -301,5 +315,8 @@ void loop() {
   httpServer.handleClient();
 
   MQTT_Handler();
-  
+
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    WiFi.begin(STASSID, STAPSK);
+  }
 }
