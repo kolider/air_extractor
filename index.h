@@ -201,9 +201,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             const fan = document.getElementById('fan-blades');
             const timer = document.getElementById('timer');
             fan.style.animationDuration = "0.6s"; 
-            // const target_hum = document.querySelector('.target_hum');
-            // // timer.style.visibility = "visible";
-            // target_hum.classList.add('active');
     
             function update() {
                 let h = Math.floor(timer_sec / 3600);
@@ -232,7 +229,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         websocket = new WebSocket(gateway);
         websocket.onopen    = onOpen;
         websocket.onclose   = onClose;
-        websocket.onmessage = onMessage; // <-- add this line
+        websocket.onmessage = onMessage;
     }
     function onOpen(event) {
       document.querySelectorAll('button').forEach((e)=>e.disabled=false);
@@ -246,7 +243,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         console.log(resp);
         document.getElementById('temp').innerHTML = resp.temp;
         document.getElementById('hum').innerHTML = resp.hum;
-        document.getElementById('target_hum').innerHTML = resp.target_hum;
+        document.getElementById('target_hum').innerHTML = parseInt(resp.target_hum);
         setMode(resp.state);
         doTimer(parseInt(resp.off_timer));
         if (resp.heating === '1') document.querySelector('.measure-values').classList.add('heating');

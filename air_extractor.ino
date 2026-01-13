@@ -9,10 +9,10 @@
 #include <ArduinoJson.h>
 
 #define WIFI_CONNECTION_TIMEOUT_MS 2000
-#define SSID_STA "WiFi-network"; //Station Point SSID
-#define PASSWD_STA "passwordToWifi-network";
+#define SSID_STA "WiFi-SSID"; //Station Point SSID
+#define PASSWD_STA NULL; //passwd to remote Station
 #define SSID_AP "BathFAN"; //SoftAP SSID
-#define PASSWD_AP NULL;
+#define PASSWD_AP NULL;  //passwd to local softAP
 
 #define INTERVAL_UPDATE_MS 500
 #define COUNT_MEASURES 120 // for EMA calculating INTERVAL_CHECK_MS * COUNT_MEASURES... equivalent St​=α⋅Xt​+(1−α)⋅St−1​
@@ -153,6 +153,9 @@ void processing(){
     heating = THSensor.isDrying();
     is_notified = false;
   }
+  if (THSensor.isReady()){
+    ema_humidity = (ema_humidity * COUNT_MEASURES + _humidity)/(COUNT_MEASURES+1);
+  }
   if (
     (_humidity - humidity >= 1 || _humidity - humidity <= -1) || 
     (_temperature - temperature >= 0.1 || _temperature - temperature <= -0.1 )
@@ -177,7 +180,6 @@ void processing(){
       if (_humidity - start_humidity <= HUMIDITY_THRESOLD_OFF){ 
         doMode(FAN_OFF);
       }
-      ema_humidity = (ema_humidity * COUNT_MEASURES + _humidity)/(COUNT_MEASURES+1);
     }
     // when working too long
     if (millis() - start_fan_ms >= duration_off_ms){
@@ -322,7 +324,7 @@ void sendDataWs(){
     JsonObject& root = jsonBuffer.createObject();
     root["temp"] = String(temperature);
     root["hum"] = String(humidity);
-    root["target_hum"] = String(int(start_humidity));
+    root["target_hum"] = String(start_humidity);
     root["state"] = String(Fan_mode);
     root["off_timer"] = String(getTimerMs()/1000);
     root["heating"] = String(heating);
