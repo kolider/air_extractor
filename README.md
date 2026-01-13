@@ -16,3 +16,19 @@ v0.1:
 v0.2:
 - fix save EEPROM for low value humidity
 - MQTT update sensor value by constant interval
+
+v1.0
+Features:
+- Most of the code has been rewritten
+- Convenient web interface running on web sockets:
+    - 4 button with different timer for manual contol FAN
+    - animation of working
+- softAP is disabled if the station is available
+- EMA calculation is used to detect sudden humidification from a hot shower
+- EEPROM is not used
+- Relay clicking on sensor error
+- Optimized use of the sensor's internal heater to dry the sensor surface
+- OTA-update support by address http://BathFAN.local/upload || http://192.168.4.1/upload for softAp
+ToDo:
+- MQTT is not supported yet
+- Hot connect to WIFI-Station requested from softAP
